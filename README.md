@@ -1,3 +1,3 @@
 # Battlemetrics PHP
 
-An PHP API-Wrapper fro the Battlemetrics API.
+An PHP API-Wrapper for the Battlemetrics API.
