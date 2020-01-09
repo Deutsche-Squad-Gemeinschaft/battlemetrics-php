@@ -1,0 +1,13 @@
+{
+    "name": "skyraptor/battlemetrics-php",
+    "description": "An PHP API-Wrapper for the Battlemetrics API.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Patrick Henninger",
+            "email": "privat@skyraptor.eu"
+        }
+    ],
+    "require": {}
+}
