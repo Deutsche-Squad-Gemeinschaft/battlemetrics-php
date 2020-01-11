@@ -1,3 +1,9 @@
 # Composer
 /vendor/
 composer.lock
+
+# Env
+.env
+
+# PHPUnit
+.phpunit.result.cache

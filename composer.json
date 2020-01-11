@@ -9,5 +9,19 @@
             "email": "privat@skyraptor.eu"
         }
     ],
-    "require": {}
+    "require": {
+        "ext-curl": "^7.4",
+        "phpunit/phpunit": "^8.5",
+        "vlucas/phpdotenv": "^4.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "BattlemetricsPHP\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "BattlemetricsPHP\\Tests\\": "tests/"
+        }
+    }
 }
