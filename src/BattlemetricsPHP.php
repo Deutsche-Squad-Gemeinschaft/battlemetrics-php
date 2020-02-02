@@ -103,6 +103,40 @@ class BattlemetricsPHP {
         return $output;
     }
 
+    public function getTimeLeaderboard(int $serverId, int $bmPlayerId = null) : array{
+        $output = [];
+
+        $nextPage = $this->apiURL . '/servers/' . $serverId . '/relationships/leaderboards/time?filter[period]=AT&page[size]=100';
+
+        if ($bmPlayerId) {
+            $nextPage .= '&filter[player]=' . $bmPlayerId;
+        }
+        
+        while (!empty($nextPage)) {
+            /* Build Request and exec */
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $nextPage);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Authorization: Bearer ' . $this->apiKey,
+            ]);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // Receive response
+            $response = json_decode(curl_exec($ch), true);
+
+            /* Get Players from list */
+            if (($list = self::getValueOrNull($response, ['data']))) {
+                $output = array_merge($output, $list);
+                unset($list);
+            }
+
+            /* Get next page query url */
+            $nextPage = self::getValueOrNull($response, ['links', 'next']);
+
+            unset($response);
+        }
+
+        return $output;
+    }
+
     private static function getValueOrNull(array $data, array $path) {
         $value = $data;
 
