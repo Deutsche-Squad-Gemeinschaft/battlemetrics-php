@@ -11,8 +11,10 @@
     ],
     "require": {
         "ext-curl": "^7.4",
-        "phpunit/phpunit": "^8.5",
-        "vlucas/phpdotenv": "^3.3"
+        "phpunit/phpunit": "^8.5"
+    },
+    "require-dev": {
+        "vlucas/phpdotenv": "^4.0"
     },
     "autoload": {
         "psr-4": {
