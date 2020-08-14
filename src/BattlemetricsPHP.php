@@ -20,7 +20,7 @@ class BattlemetricsPHP {
      * @param string $apiKey OAuth2.0 Bearer Key
      * @param string $apiURL URL to the Battlemetrics API, should be https://api.battlemetrics.com
      */
-    function __construct(string $apiKey, string $apiURL = 'https://api.battlemetrics.com')
+    function __construct(string $apiKey, string $apiURL = 'https://api.battlemetrics.com', int $timeout = 15)
     {
         $this->apiKey = $apiKey;
 
@@ -33,6 +33,7 @@ class BattlemetricsPHP {
             // Base URI is used with relative requests
             'base_uri' => $apiURL,
             'handler' => $stack,
+            'timeout'  => $timeout,
         ]);
 
         
