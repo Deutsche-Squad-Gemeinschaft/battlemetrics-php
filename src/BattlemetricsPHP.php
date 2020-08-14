@@ -3,6 +3,7 @@
 namespace BattlemetricsPHP;
 
 use BattlemetricsPHP\Exceptions\PlayerNotFoundException;
+use BattlemetricsPHP\Models\Leaderboard;
 use BattlemetricsPHP\Models\Player;
 use BattlemetricsPHP\RateLimiterMiddleware;
 use GuzzleHttp\Client;
@@ -117,41 +118,24 @@ class BattlemetricsPHP {
      * @param integer|null $bmPlayerId
      * @return array
      */
-    public function getTimeLeaderboard(int $serverId, int $bmPlayerId = null) : array{
-        $output = [];
-
+    public function getTimeLeaderboard(int $serverId, int $bmPlayerId = null) : Leaderboard
+    {
+        /* Build the endpoint and add the necessary filters */
         $endpoint = '/servers/' . $serverId . '/relationships/leaderboards/time?filter[period]=AT&page[size]=100';
-
         if ($bmPlayerId) {
             $endpoint .= '&filter[player]=' . $bmPlayerId;
         }
-        
-        while (!empty($endpoint)) {
-            /* Build Request and exec */
-            $response = $this->client->request('GET', $endpoint, [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $this->apiKey,
-                ],
-            ]);
+        /* Build Request and exec */
+        $response = $this->client->request('GET', $endpoint, [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $this->apiKey,
+            ],
+        ]);
 
-            /* Get JSON data from response */
-            $result = json_decode($response->getBody(), true);
+        /* Get JSON data from response */
+        $result = json_decode($response->getBody(), true);
 
-            /* Get Players from list */
-            if (($list = self::getValueOrNull($result, ['data']))) {
-                $output = array_merge($output, $list);
-                unset($list);
-            }
-
-            /* Get next page query url */
-            $endpoint = self::getValueOrNull($result, ['links', 'next']);
-
-            /* Unset to be sure */
-            unset($response);
-            unset($result);
-        }
-
-        return $output;
+        return new Leaderboard(self::getValueOrNull($result, ['data']), self::getValueOrNull($result, ['links', 'next']));
     }
 
     private static function getValueOrNull(array $data, array $path) {

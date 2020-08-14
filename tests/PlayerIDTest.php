@@ -50,9 +50,6 @@ class PlayerIDTest extends TestCase {
 
         /* Should not contain anything */
         $this->assertCount(0, $players);
-
-        /* API rate limit */
-        sleep(1);
     }
 
     /**
@@ -74,9 +71,6 @@ class PlayerIDTest extends TestCase {
             /* Verify it is the correct id */
             $this->assertSame($this->playerId, $player->getId());
         }
-
-        /* API rate limit */
-        sleep(1);
     }
 
     /**
@@ -102,9 +96,6 @@ class PlayerIDTest extends TestCase {
         /* Verify it is the correct id */
         $this->assertSame($this->playerId, $players[$this->steamId]->getId());
         $this->assertSame($this->playerIdOther, $players[$this->steamIdOther]->getId());
-
-        /* API rate limit */
-        sleep(1);
     }
 
     /**

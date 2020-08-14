@@ -25,12 +25,15 @@ class LeaderboardsTest extends TestCase {
      */
     public function it_can_get_the_playtime_leaderboards() {
         /* Get players with definitely not existing steamid */
-        $players = $this->core->getTimeLeaderboard(3219649);
+        $leaderboard = $this->core->getTimeLeaderboard(3219649);
 
-        /* Should not contain anything */
-        $this->assertTrue(count($players));
+        /* Check that we got a Leaderboard instance */
+        $this->assertInstanceOf(Leaderboard::class, $leaderboard);
 
-        /* API rate limit */
-        sleep(1);
+        /* Check that it contains any data */
+        $this->assertTrue(count($leaderboard->getData()));
+
+        /* Check that it contains a next page url */
+        $this->assertTrue(count($leaderboard->getNextUrl()));
     }
 }
