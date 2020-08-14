@@ -25,8 +25,14 @@ class RateLimiterMiddleware
         /* Get the delay for the request to be safe */
         $delay = $this->delayUntilNextRequest();
 
-        /* Wait until the request is safe */
-        usleep($delay);
+        /* Wait for the delay and update until there is none */
+        while ($delay > 0) {
+            /* Wait until the request is safe */
+            usleep($delay);
+
+            /* Update the delay in case another request has been made */
+            $delay = $this->delayUntilNextRequest();
+        }
 
         /* Add the current time to the store */
         $this->store[] = microtime(true);
