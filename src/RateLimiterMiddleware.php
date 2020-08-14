@@ -28,14 +28,14 @@ class RateLimiterMiddleware
         /* Wait for the delay and update until there is none */
         while ($delay > 0) {
             /* Wait until the request is safe */
-            usleep($delay);
+            $this->msleep($delay);
 
             /* Update the delay in case another request has been made */
             $delay = $this->delayUntilNextRequest();
         }
 
         /* Add the current time to the store */
-        $this->store[] = microtime(true);
+        $this->store[] = $this->milliseconds();
 
         /* Run request and set allowance afterwards */
         return $callback()->then($this->setRemaining());
@@ -44,8 +44,8 @@ class RateLimiterMiddleware
     protected function setRemaining() {
         return function (ResponseInterface $response) {
             if ($response->hasHeader('X-Rate-Limit-Limit') && $response->hasHeader('X-Rate-Limit-Remaining')) {
-                $this->available = intval($response->getHeader('X-Rate-Limit-Limit'));
-                $this->remaining = intval($response->getHeader('X-Rate-Limit-Remaining'));
+                $this->available = intval($response->getHeader('X-Rate-Limit-Limit')[0]);
+                $this->remaining = intval($response->getHeader('X-Rate-Limit-Remaining')[0]);
             }
             
             return $response;
@@ -67,22 +67,23 @@ class RateLimiterMiddleware
         /* If there is not last time it is safe to request */
         if ($last) {
             /* Reset store & remaining if last request is older than one minute */
-            if ($last < microtime(true) - 1000000 * 60) {
+            if ($last < $this->milliseconds() - 1000 * 60) {
                 $this->reset();
             }
 
             /* If there are no more requests remaining we will have to wait one minute */
             if (!$this->remaining) {
-                return (1000000 * 60) - (microtime(true) - $last);
+                return (1000 * 60) - ($this->milliseconds() - $last);
             }
             
             /* If there are more than 5 requests it is possible we are bursting */
-            if (count($this->store) > 5) {
+            if (count($this->store) >= 5) {
                 $burstStart = $this->store[count($this->store) -  5];
 
                 /* Check if burst start was within this second */
-                if ($burstStart > microtime(true) - 1000000) {
-                    return ($burstStart + 1000000) - microtime(true);
+                $beforeOneSecond = $this->milliseconds() - 1000;
+                if ($burstStart > $beforeOneSecond) {
+                    return ($burstStart + 1000) - $this->milliseconds();
                 }
             }
         }
@@ -99,5 +100,23 @@ class RateLimiterMiddleware
     {
         $this->store = [];
         $this->remaining = $this->available;
+    }
+
+    /**
+     * Microtime but as milliseconds and integer
+     *
+     * @return integer
+     */
+    protected function milliseconds() : int 
+    {
+        return round(microtime(true) * 1000);
+    }
+
+    /**
+     * usleep but for milliseconds.
+     */
+    protected function msleep(int $time) : void
+    {
+        usleep($time * 1000000);
     }
 }
