@@ -4,13 +4,14 @@ namespace BattlemetricsPHP;
 
 use BattlemetricsPHP\Exceptions\PlayerNotFoundException;
 use BattlemetricsPHP\Models\Player;
+use BattlemetricsPHP\RateLimiterMiddleware;
+use GuzzleHttp\Client;
+use GuzzleHttp\Handler\CurlHandler;
+use GuzzleHttp\HandlerStack;
 
 class BattlemetricsPHP {
-    /** @var string */
-    private $apiKey;
-
-    /** @var string */
-    private $apiURL;
+    private string $apiKey;
+    private Client $client;
 
     /**
      * Undocumented function
@@ -21,7 +22,19 @@ class BattlemetricsPHP {
     function __construct(string $apiKey, string $apiURL = 'https://api.battlemetrics.com')
     {
         $this->apiKey = $apiKey;
-        $this->apiURL = $apiURL;
+
+        $stack = new HandlerStack();
+        $stack->setHandler(new CurlHandler());
+        $stack->push(new RateLimiterMiddleware());
+
+        /* Initialize GuzzleClient */
+        $this->client = new Client([
+            // Base URI is used with relative requests
+            'base_uri' => $apiURL,
+            'handler' => $stack,
+        ]);
+
+        
     }
 
     /**
@@ -33,14 +46,14 @@ class BattlemetricsPHP {
      * @param int[] $steamId The steamId associated to the player.
      * @return array
      */
-    public function getPlayerForSteamId(array $steamId) : array {
+    public function getPlayerForSteamId(array $steamIds) : array {
         /* Build Request data */
-        $data = [
+        $requestData = [
             'data' => []
         ];
 
-        foreach ($steamId as $sId) {
-            array_push($data['data'], [
+        foreach ($steamIds as $sId) {
+            array_push($requestData['data'], [
                 'type' => 'identifier',
                 'attributes' => [
                     'type' => 'steamID',
@@ -49,53 +62,46 @@ class BattlemetricsPHP {
             ]);
         }
 
-        $data = json_encode($data);
-
-        /* Build Request and exec */
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->apiURL . '/players/match');
-        curl_setopt($ch, CURLOPT_POST, 1); // POST
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [                                                                          
-            'Content-Type: application/json',                                                                                
-            'Content-Length: ' . strlen($data),
-            'Authorization: Bearer ' . $this->apiKey,
+        $response = $this->client->request('POST', '/players/match', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $this->apiKey,
+            ],
+            'json' => $requestData,
         ]);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // Receive response
-        $response = json_decode(curl_exec($ch), true);
 
-        /* Validate result Format */
-        if (!$response || !is_array($response)) {
+        /* Validate response status code */
+        if ($response->getStatusCode() !== 200) {
             /* No player found, throw Exception */
-            throw new PlayerNotFoundException("Could not find a player for SteamIDs");
+            throw new PlayerNotFoundException('Could not read /players/match endpoint. Status code: ' . $response->getStatusCode());
         }
+
+        /* Get JSON data from response */
+        $data = json_decode($response->getBody(), true);
 
         /* Process results */
         $output = [];
-        $results = self::getValueOrNull($response, ['data']) ?? [];
+        $results = self::getValueOrNull($data, ['data']) ?? [];
         foreach ($results as $r) {
             /* Check if ID is SteamID */
             $idType = self::getValueOrNull($r, ['attributes', 'type']);
             if ($idType !== 'steamID') {
-                echo 'COULD NOT FIND ID TYPE';
                 continue;
             }
 
             /* Get SteamID */
             $rSteamID = self::getValueOrNull($r, ['attributes', 'identifier']);
             if (!$rSteamID) {
-                echo 'COULD NOT FIND STEAMID';
                 continue;
             }
 
             /* Get BattlemetricsID */
             $rBMID = self::getValueOrNull($r, ['relationships', 'player', 'data', 'id']);
             if (!$rBMID) {
-                echo 'COULD NOT FIND BMID';
                 continue;
             }
 
 
+            /* Add to the output data */
             $output[intval($rSteamID)] = new Player(intval($rBMID));
         }
 
@@ -103,35 +109,46 @@ class BattlemetricsPHP {
         return $output;
     }
 
+    /**
+     * Retrieves the leaderboard endpoint for a given server id.
+     * Will filter for a specific player (api side) if not null.
+     *
+     * @param integer $serverId
+     * @param integer|null $bmPlayerId
+     * @return array
+     */
     public function getTimeLeaderboard(int $serverId, int $bmPlayerId = null) : array{
         $output = [];
 
-        $nextPage = $this->apiURL . '/servers/' . $serverId . '/relationships/leaderboards/time?filter[period]=AT&page[size]=100';
+        $endpoint = '/servers/' . $serverId . '/relationships/leaderboards/time?filter[period]=AT&page[size]=100';
 
         if ($bmPlayerId) {
-            $nextPage .= '&filter[player]=' . $bmPlayerId;
+            $endpoint .= '&filter[player]=' . $bmPlayerId;
         }
         
-        while (!empty($nextPage)) {
+        while (!empty($endpoint)) {
             /* Build Request and exec */
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $nextPage);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                'Authorization: Bearer ' . $this->apiKey,
+            $response = $this->client->request('GET', $endpoint, [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $this->apiKey,
+                ],
             ]);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // Receive response
-            $response = json_decode(curl_exec($ch), true);
+
+            /* Get JSON data from response */
+            $result = json_decode($response->getBody(), true);
 
             /* Get Players from list */
-            if (($list = self::getValueOrNull($response, ['data']))) {
+            if (($list = self::getValueOrNull($result, ['data']))) {
                 $output = array_merge($output, $list);
                 unset($list);
             }
 
             /* Get next page query url */
-            $nextPage = self::getValueOrNull($response, ['links', 'next']);
+            $endpoint = self::getValueOrNull($result, ['links', 'next']);
 
+            /* Unset to be sure */
             unset($response);
+            unset($result);
         }
 
         return $output;
