@@ -119,13 +119,22 @@ class BattlemetricsPHP {
      * @param integer|null $bmPlayerId
      * @return array
      */
-    public function getTimeLeaderboard(int $serverId, int $bmPlayerId = null) : Leaderboard
+    public function getTimeLeaderboard(int $serverId, string $bmPlayerIdOrEndpoint = null) : Leaderboard
     {
-        /* Build the endpoint and add the necessary filters */
+        /* Build the default start endpoint */
         $endpoint = '/servers/' . $serverId . '/relationships/leaderboards/time?filter[period]=AT&page[size]=100';
-        if ($bmPlayerId) {
-            $endpoint .= '&filter[player]=' . $bmPlayerId;
+
+        /* Check for filter or continuation endpoint */
+        if ($bmPlayerIdOrEndpoint) {
+            if (is_numeric($bmPlayerIdOrEndpoint)) {
+                /* Add the player id filter to the endpoint if $bmPlayerIdOrEndpoint is numeric */
+                $endpoint .= '&filter[player]=' . $bmPlayerIdOrEndpoint;
+            } else {
+                /* If it is a string treat it as an endpoint */
+                $endpoint = $bmPlayerIdOrEndpoint;
+            }
         }
+        
         /* Build Request and exec */
         $response = $this->client->request('GET', $endpoint, [
             'headers' => [
