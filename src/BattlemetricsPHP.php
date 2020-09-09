@@ -102,7 +102,6 @@ class BattlemetricsPHP {
                 continue;
             }
 
-
             /* Add to the output data */
             $output[intval($rSteamID)] = new Player(intval($rBMID));
         }

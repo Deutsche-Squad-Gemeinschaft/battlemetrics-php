@@ -2,20 +2,10 @@
 
 namespace BattlemetricsPHP\Tests;
 
-use PHPUnit\Framework\TestCase;
-use BattlemetricsPHP\BattlemetricsPHP;
-use BattlemetricsPHP\Models\Player;
-use Dotenv\Dotenv;
+use BattlemetricsPHP\Models\Leaderboard;
+use BattlemetricsPHP\Tests\Abstracts\AbstractTest;
 
-class LeaderboardsTest extends TestCase {
-    /** @var BattlemetricsPHP */
-    protected $core;
-
-    protected function setUp() : void
-    {
-        $this->core = new BattlemetricsPHP(getenv('BATTLEMETRICSPHP_API_KEY'));
-    }
-
+class LeaderboardsTest extends AbstractTest {
     /**
      * Verifies that an error will be thrown if an invalid
      * or unknown SteamID is provided.
@@ -31,9 +21,9 @@ class LeaderboardsTest extends TestCase {
         $this->assertInstanceOf(Leaderboard::class, $leaderboard);
 
         /* Check that it contains any data */
-        $this->assertTrue(count($leaderboard->getData()));
+        $this->assertCount(100, $leaderboard->getData());
 
         /* Check that it contains a next page url */
-        $this->assertTrue(count($leaderboard->getNextUrl()));
+        $this->assertNotNull($leaderboard->getNextUrl());
     }
 }

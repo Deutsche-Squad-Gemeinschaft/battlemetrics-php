@@ -2,16 +2,10 @@
 
 namespace BattlemetricsPHP\Tests;
 
-use BattlemetricsPHP\Exceptions\PlayerNotFoundException;
-use PHPUnit\Framework\TestCase;
-use BattlemetricsPHP\BattlemetricsPHP;
 use BattlemetricsPHP\Models\Player;
-use Dotenv\Dotenv;
+use BattlemetricsPHP\Tests\Abstracts\AbstractTest;
 
-class PlayerIDTest extends TestCase {
-    /** @var BattlemetricsPHP */
-    protected $core;
-
+class PlayerIDTest extends AbstractTest {
     /** @var int Expected SteamID */
     private $steamId;
      /** @var int Expected other SteamID */
@@ -25,16 +19,13 @@ class PlayerIDTest extends TestCase {
 
     protected function setUp() : void
     {
-        $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
-        $dotenv->load();
+        parent::setUp();
 
         $this->steamId = intval(getenv('BATTLEMETRICSPHP_TEST_STEAMID'));
         $this->playerId = intval(getenv('BATTLEMETRICSPHP_TEST_BMID'));
 
         $this->steamIdOther = intval(getenv('BATTLEMETRICSPHP_TEST_ANOTHER_STEAMID'));
         $this->playerIdOther = intval(getenv('BATTLEMETRICSPHP_TEST_ANOTHER_BMID'));
-
-        $this->core = new BattlemetricsPHP(getenv('BATTLEMETRICSPHP_API_KEY'));
     }
 
     /**
