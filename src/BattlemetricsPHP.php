@@ -5,7 +5,8 @@ namespace BattlemetricsPHP;
 use BattlemetricsPHP\Exceptions\PlayerNotFoundException;
 use BattlemetricsPHP\Models\Leaderboard;
 use BattlemetricsPHP\Models\Player;
-use BattlemetricsPHP\RateLimiterMiddleware;
+use BattlemetricsPHP\RateLimiter\AbstractRateLimitProvider;
+use BattlemetricsPHP\RateLimiter\MemoryRateLimitProvider;
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\CurlHandler;
 use GuzzleHttp\HandlerStack;
@@ -20,13 +21,13 @@ class BattlemetricsPHP {
      * @param string $apiKey OAuth2.0 Bearer Key
      * @param string $apiURL URL to the Battlemetrics API, should be https://api.battlemetrics.com
      */
-    function __construct(string $apiKey, string $apiURL = 'https://api.battlemetrics.com', int $timeout = 15)
+    function __construct(string $apiKey, ?AbstractRateLimitProvider $provider = null, string $apiURL = 'https://api.battlemetrics.com', int $timeout = 15)
     {
         $this->apiKey = $apiKey;
 
         $stack = new HandlerStack();
         $stack->setHandler(new CurlHandler());
-        $stack->push(new RateLimiterMiddleware());
+        $stack->push($provider ?? new MemoryRateLimitProvider());
 
         /* Initialize GuzzleClient */
         $this->client = new Client([
@@ -35,8 +36,6 @@ class BattlemetricsPHP {
             'handler' => $stack,
             'timeout'  => $timeout,
         ]);
-
-        
     }
 
     /**

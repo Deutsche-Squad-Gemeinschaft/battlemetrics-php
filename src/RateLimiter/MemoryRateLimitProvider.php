@@ -1,8 +1,8 @@
 <?php
 
-namespace BattlemetricsPHP;
+namespace BattlemetricsPHP\RateLimiter;
 
-abstract class MemoryRateLimitProvider extends AbstractRateLimitProvider
+class MemoryRateLimitProvider extends AbstractRateLimitProvider
 {
     private int $available = 60;
     private int $remaining = 60;

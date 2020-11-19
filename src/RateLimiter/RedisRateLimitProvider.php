@@ -1,8 +1,10 @@
 <?php
 
-namespace BattlemetricsPHP;
+namespace BattlemetricsPHP\RateLimiter;
 
-abstract class MemoryRateLimitProvider extends AbstractRateLimitProvider
+use BattlemetricsPHP\RedisAbstraction;
+
+class RedisRateLimitProvider extends AbstractRateLimitProvider
 {
     private RedisAbstraction $redis;
 
