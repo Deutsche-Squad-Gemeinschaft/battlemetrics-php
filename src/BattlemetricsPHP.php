@@ -31,7 +31,6 @@ class BattlemetricsPHP {
 
         /* Initialize GuzzleClient */
         $this->client = new Client([
-            // Base URI is used with relative requests
             'base_uri' => $apiURL,
             'handler' => $stack,
             'timeout'  => $timeout,
@@ -64,9 +63,7 @@ class BattlemetricsPHP {
         }
 
         $response = $this->client->request('POST', '/players/match', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $this->apiKey,
-            ],
+            'headers' => $this->addAuthorizationHeader(),
             'json' => $requestData,
         ]);
 
@@ -135,15 +132,20 @@ class BattlemetricsPHP {
         
         /* Build Request and exec */
         $response = $this->client->request('GET', $endpoint, [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $this->apiKey,
-            ],
+            'headers' => $this->addAuthorizationHeader(),
         ]);
 
         /* Get JSON data from response */
         $result = json_decode($response->getBody(), true);
 
         return new Leaderboard(self::getValueOrNull($result, ['data']), self::getValueOrNull($result, ['links', 'next']));
+    }
+
+    private function addAuthorizationHeader(array $input = []) : array
+    {
+        return array_merge($input, [
+            'Authorization' => 'Bearer ' . $this->apiKey,
+        ]);
     }
 
     private static function getValueOrNull(array $data, array $path) {
