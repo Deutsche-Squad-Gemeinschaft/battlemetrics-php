@@ -107,6 +107,62 @@ class BattlemetricsPHP {
     }
 
     /**
+     * Searches a Players associated SteamID.
+     * 
+     * Note: Will only find players that are associated to a server
+     * with the correct RCON permissions set-up for the provided API key
+     * and passed as serverId.
+     *
+     * @param int $playerId The BattleMetrics player id.
+     * @param array $serverIds A list of BattleMetrics server ids the user is expected to be associated to.
+     * @return int|null
+     */
+    public function getSteamIdByPlayerId(int $playerId, array $serverIds) : ?int {
+        /* Build the Request endpoint */
+        $endpoint = '/players/' . $playerId . '?filter[identifiers]=steamID&filter[servers]=' . implode(',', $serverIds) . '&include=server,identifier';
+
+        $response = $this->client->request('GET', $endpoint, [
+            'headers' => $this->addAuthorizationHeader(),
+        ]);
+
+        /* Validate response status code */
+        if ($response->getStatusCode() !== 200) {
+            /* No player found, throw Exception */
+            throw new PlayerNotFoundException('Could not read /players/{{player}} endpoint. Status code: ' . $response->getStatusCode());
+        }
+
+        /* Get JSON data from response */
+        $data = json_decode($response->getBody(), true);
+
+        /* Process results */
+        $included = self::getValueOrNull($data, ['data', 'included']) ?? [];
+        foreach ($included as $inc) {
+            /* Check if type is identifier */
+            $type = self::getValueOrNull($inc, ['type']);
+            if ($type !== 'identifier') {
+                continue;
+            }
+
+            /* Check if identifier is of type steamID */
+            $type = self::getValueOrNull($inc, ['attributes', 'type']);
+            if ($type !== 'steamID') {
+                continue;
+            }
+
+            /* Get SteamID */
+            $steamId = self::getValueOrNull($inc, ['attributes', 'identifier']);
+            if (!$steamId) {
+                continue;
+            }
+
+            /* Return the finding as integer */
+            return intval($steamId);
+        }
+
+        return null;
+    }
+
+    /**
      * Retrieves the leaderboard endpoint for a given server id.
      * Will filter for a specific player (api side) if not null.
      *
