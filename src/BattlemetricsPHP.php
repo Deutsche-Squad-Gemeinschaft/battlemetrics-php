@@ -135,7 +135,7 @@ class BattlemetricsPHP {
         $data = json_decode($response->getBody(), true);
 
         /* Process results */
-        $included = self::getValueOrNull($data, ['data', 'included']) ?? [];
+        $included = self::getValueOrNull($data, ['included']) ?? [];
         foreach ($included as $inc) {
             /* Check if type is identifier */
             $type = self::getValueOrNull($inc, ['type']);
